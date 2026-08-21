@@ -1,0 +1,48 @@
+# Secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+
+# Node
+node_modules/
+.next/
+dist/
+build/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local/raw geodata — do not commit large or restricted source files
+data/raw/
+data/cache/
+data/processed/
+*.gpkg
+*.shp
+*.shx
+*.dbf
+*.prj
+*.cpg
+*.tif
+*.tiff
+*.parquet
+*.geoparquet
+*.pmtiles
+*.mbtiles
+*.fgb
+
+# Allow deliberately tiny fixtures later
+!data/sample/
+!data/sample/**
