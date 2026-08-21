@@ -1,0 +1,49 @@
+# Example only. Do not treat placeholders as verified sources.
+sources:
+  - id: example-building-api
+    provider: null
+    title: null
+    layer_family: building
+    authority: authoritative
+    access:
+      type: api
+      endpoint: null
+    auth:
+      required: true
+      env_var: BUILDING_API_KEY
+    coverage:
+      spatial: nationwide
+      temporal: null
+    update_cycle: null
+    source_crs: null
+    license:
+      name: null
+      url: null
+    preferred_rank: 1
+    last_verified: null
+    schema_mapping: {}
+    limitations: []
+
+  - id: example-building-cache
+    provider: Choo-K Region Stat
+    title: Verified building cache
+    layer_family: building
+    authority: derived-cache
+    access:
+      type: local
+      endpoint: null
+    auth:
+      required: false
+    coverage:
+      spatial: pilot-area
+      temporal: null
+    update_cycle: derived
+    source_crs: inherited
+    license:
+      name: inherited-from-source
+      url: null
+    preferred_rank: 99
+    last_verified: null
+    schema_mapping: {}
+    limitations:
+      - Must never be presented as fresher than its source vintage.
