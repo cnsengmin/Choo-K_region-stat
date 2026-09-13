@@ -134,9 +134,36 @@ def test_build_monthly_composites_uses_acquisition_time():
     assert np.isclose(float(output["2026-08"].data[0, 0]), 0.3)
 
 
+def test_monthly_outputs_share_one_fixed_grid_across_periods():
+    july = _result(
+        "july",
+        [[0.1]],
+        transform=(10.0, 0.0, 0.0, 0.0, -10.0, 20.0),
+    )
+    august = _result(
+        "august",
+        [[0.2]],
+        transform=(10.0, 0.0, 10.0, 0.0, -10.0, 20.0),
+    )
+    output = build_temporal_composites(
+        [
+            TemporalObservation("2026-07-15T00:00:00Z", july),
+            TemporalObservation("2026-08-15T00:00:00Z", august),
+        ]
+    )
+    assert output["2026-07"].transform == output["2026-08"].transform
+    assert output["2026-07"].data.shape == output["2026-08"].data.shape == (1, 2)
+
+
 def test_composite_rejects_mixed_index_or_mask_policy():
     ndvi = _result("a", [[0.2]], index="ndvi")
-    ndbi = _result("b", [[0.3]], index="ndbi", gsd=20.0, transform=(20, 0, 0, 0, -20, 20))
+    ndbi = _result(
+        "b",
+        [[0.3]],
+        index="ndbi",
+        gsd=20.0,
+        transform=(20, 0, 0, 0, -20, 20),
+    )
     with np.testing.assert_raises(ValueError):
         composite_observations(
             [
