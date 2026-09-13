@@ -84,6 +84,8 @@ Preferred rule:
 3. record the applied conversion in provenance
 ```
 
+Earth Search currently exposes scale/offset in STAC raster metadata for its Sentinel-2 collections. The processing code should consume those declarations rather than infer a conversion only from the mission name.
+
 ## 7. QA
 
 SCL includes classes for nodata, saturated/defective pixels, cloud shadows, vegetation, bare soil, water, cloud probability classes, cirrus and snow/ice.
@@ -109,6 +111,7 @@ B11 is native 20 m, so mixing it with 10 m bands requires an explicit resampling
 4. Do not treat cloudy months with few valid pixels as equal-quality observations.
 5. Record processing baseline changes.
 6. Prefer aggregation to a research support over pretending all mixed-resolution bands are natively 10 m.
+7. Treat provider-side collection changes as provenance, not as automatic scientific discontinuities; verify the processing change before interpreting it as a temporal signal.
 
 ## 10. External integration
 
@@ -126,6 +129,17 @@ Preferred discovery routes:
 - Earth Search STAC
 - Copernicus Data Space Ecosystem STAC
 
+### Earth Search current collection mapping
+
+As verified on 2026-09-13, Earth Search v1 represents Sentinel-2 L2A using two Collection-1-related collections:
+
+```text
+sentinel-2-pre-c1-l2a
+sentinel-2-c1-l2a
+```
+
+`eo2stats` therefore keeps `sentinel-2-l2a` as a **logical dataset ID** and searches both provider collections when needed. Research scripts should not hard-code only one provider collection for a long time series.
+
 Search fields:
 - intersects/bbox
 - datetime
@@ -137,3 +151,4 @@ Search fields:
 
 - https://documentation.dataspace.copernicus.eu/Data/SentinelMissions/Sentinel2.html
 - https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Data/S2L2A.html
+- https://earth-search.aws.element84.com/v1/collections
