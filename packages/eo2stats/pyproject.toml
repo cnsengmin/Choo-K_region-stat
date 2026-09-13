@@ -1,0 +1,26 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "eo2stats"
+version = "0.0.1"
+description = "Earth observation to urban features and spatial statistics with explicit spatial-support semantics"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [{name = "Choo-K Region Stat contributors"}]
+keywords = ["earth-observation", "urban", "gis", "spatial-statistics", "stac", "mcp"]
+dependencies = []
+
+[project.optional-dependencies]
+eo = ["pystac-client", "xarray", "rasterio", "rioxarray"]
+vector = ["geopandas", "shapely"]
+spatialize = ["geopandas", "shapely", "tobler"]
+dev = ["pytest", "ruff"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/eo2stats"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
