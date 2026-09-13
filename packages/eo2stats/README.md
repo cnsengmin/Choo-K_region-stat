@@ -46,6 +46,32 @@ Initial classes:
 
 See `docs/INDICATOR_SPATIALIZATION.md`.
 
+## Current executable milestone: STAC scene discovery
+
+The first working EO API is now implemented for scene discovery.
+
+```python
+from eo2stats import search_scenes
+
+scenes = search_scenes(
+    dataset="sentinel-2-l2a",
+    start_date="2026-08-01",
+    end_date="2026-08-31",
+    bbox=(126.92, 37.35, 127.02, 37.43),
+    max_cloud_cover=20,
+    limit=100,
+)
+
+rows = [scene.to_dict() for scene in scenes]
+```
+
+The public logical dataset ID is intentionally separated from provider-specific collection IDs. For example, current Earth Search Sentinel-2 L2A discovery resolves `sentinel-2-l2a` across both pre-Collection-1 and Collection-1 catalogs when necessary for long time series.
+
+See:
+- `docs/SCENE_SEARCH.md`
+- `examples/search_sentinel2.py`
+- `docs/satellite-data/sentinel-2-l2a.md`
+
 ## Interfaces
 
 The **core is not tied to MCP or QGIS**. Both are adapters.
@@ -89,12 +115,12 @@ Candidate MCP tools:
 
 Given an AOI and date range:
 
-1. search Sentinel-2 scenes;
-2. report scene date/cloud/assets;
+1. **search Sentinel-2 scenes — implemented**;
+2. **report scene date/cloud/assets — implemented**;
 3. read only AOI COG windows;
 4. calculate NDVI/NDBI/NDWI with documented QA;
 5. aggregate to a stable analysis grid;
 6. attach static DEM-derived covariates;
 7. export a provenance-aware long-format table.
 
-The next milestone adds building/road/urban-form extraction and a guarded spatialization layer for administrative indicators.
+The next milestone adds COG window reading and scale/offset inspection. Building/road/urban-form extraction and the guarded spatialization layer remain separate modules so physical urban measurements are not confused with administrative-context variables.
