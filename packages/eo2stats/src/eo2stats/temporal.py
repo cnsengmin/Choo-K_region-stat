@@ -45,6 +45,22 @@ class CompositePolicy:
 
 
 @dataclass(frozen=True, slots=True)
+class CompositeGrid:
+    crs: str
+    transform: tuple[float, ...]
+    shape: tuple[int, int]
+    target_gsd: float
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "crs": self.crs,
+            "transform": list(self.transform),
+            "shape": list(self.shape),
+            "target_gsd": self.target_gsd,
+        }
+
+
+@dataclass(frozen=True, slots=True)
 class CompositeSummary:
     input_scene_count: int
     usable_scene_count: int
@@ -162,11 +178,11 @@ def _validate_observations(
     return next(iter(index_names)), next(iter(target_gsds)), next(iter(mask_policies))
 
 
-def _build_output_grid(
+def build_composite_grid(
     observations: Sequence[TemporalObservation],
     *,
-    target_gsd: float,
-) -> tuple[str, tuple[float, ...], tuple[int, int]]:
+    target_gsd: float | None = None,
+) -> CompositeGrid:
     try:
         from affine import Affine
         from rasterio.transform import array_bounds, from_origin
@@ -176,6 +192,15 @@ def _build_output_grid(
             "Temporal composites require rasterio and affine. "
             "Install with `pip install 'eo2stats[eo]'`."
         ) from exc
+
+    if not observations:
+        raise ValueError(
+            "At least one temporal observation is required to build a composite grid."
+        )
+    _, inferred_gsd, _ = _validate_observations(observations)
+    grid_gsd = inferred_gsd if target_gsd is None else float(target_gsd)
+    if grid_gsd <= 0:
+        raise ValueError("target_gsd must be positive.")
 
     target_crs = observations[0].result.crs
     bounds: list[tuple[float, float, float, float]] = []
@@ -196,14 +221,19 @@ def _build_output_grid(
             )
         bounds.append((west, south, east, north))
 
-    left = floor(min(bound[0] for bound in bounds) / target_gsd) * target_gsd
-    bottom = floor(min(bound[1] for bound in bounds) / target_gsd) * target_gsd
-    right = ceil(max(bound[2] for bound in bounds) / target_gsd) * target_gsd
-    top = ceil(max(bound[3] for bound in bounds) / target_gsd) * target_gsd
-    width = max(1, int(round((right - left) / target_gsd)))
-    height = max(1, int(round((top - bottom) / target_gsd)))
-    transform = from_origin(left, top, target_gsd, target_gsd)
-    return target_crs, tuple(transform)[:6], (height, width)
+    left = floor(min(bound[0] for bound in bounds) / grid_gsd) * grid_gsd
+    bottom = floor(min(bound[1] for bound in bounds) / grid_gsd) * grid_gsd
+    right = ceil(max(bound[2] for bound in bounds) / grid_gsd) * grid_gsd
+    top = ceil(max(bound[3] for bound in bounds) / grid_gsd) * grid_gsd
+    width = max(1, int(round((right - left) / grid_gsd)))
+    height = max(1, int(round((top - bottom) / grid_gsd)))
+    transform = from_origin(left, top, grid_gsd, grid_gsd)
+    return CompositeGrid(
+        crs=target_crs,
+        transform=tuple(transform)[:6],
+        shape=(height, width),
+        target_gsd=grid_gsd,
+    )
 
 
 def _align_index_result(
@@ -256,6 +286,7 @@ def composite_observations(
     *,
     period_key: str,
     policy: CompositePolicy | None = None,
+    grid: CompositeGrid | None = None,
 ) -> TemporalCompositeResult:
     try:
         import numpy as np
@@ -266,9 +297,17 @@ def composite_observations(
 
     selected_policy = policy or CompositePolicy()
     index_name, target_gsd, mask_policy = _validate_observations(observations)
-    target_crs, target_transform, target_shape = _build_output_grid(
+    selected_grid = grid or build_composite_grid(
         observations, target_gsd=target_gsd
     )
+    if not abs(selected_grid.target_gsd - target_gsd) < 1e-9:
+        raise ValueError(
+            f"Composite grid GSD {selected_grid.target_gsd} does not match "
+            f"the index target GSD {target_gsd}."
+        )
+    target_crs = selected_grid.crs
+    target_transform = selected_grid.transform
+    target_shape = selected_grid.shape
 
     usable = [
         obs
@@ -306,7 +345,9 @@ def composite_observations(
                 composite = np.nanmedian(filled, axis=0)
             else:
                 composite = np.nanpercentile(
-                    filled, selected_policy.percentile, axis=0
+                    filled,
+                    selected_policy.percentile,
+                    axis=0,
                 )
     else:
         n_observations = np.zeros(target_shape, dtype=np.uint16)
@@ -356,13 +397,19 @@ def build_temporal_composites(
     *,
     frequency: str = "monthly",
     policy: CompositePolicy | None = None,
+    grid: CompositeGrid | None = None,
 ) -> dict[str, TemporalCompositeResult]:
+    _, target_gsd, _ = _validate_observations(observations)
+    selected_grid = grid or build_composite_grid(
+        observations, target_gsd=target_gsd
+    )
     grouped = group_temporal_observations(observations, frequency=frequency)
     return {
         period_key: composite_observations(
             values,
             period_key=period_key,
             policy=policy,
+            grid=selected_grid,
         )
         for period_key, values in grouped.items()
     }
