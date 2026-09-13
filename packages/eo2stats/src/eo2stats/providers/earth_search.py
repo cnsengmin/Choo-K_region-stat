@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Mapping
 
+from ..assets import AssetSpec, asset_specs_from_item
 from ..scenes import CollectionCoverage, SceneRecord, SceneSearchRequest
 
 EARTH_SEARCH_URL = "https://earth-search.aws.element84.com/v1"
@@ -86,6 +87,8 @@ class EarthSearchProvider:
         coverages: list[CollectionCoverage] = []
         for collection_id in self.resolve_collections(dataset):
             collection = self.client.get_collection(collection_id)
+            if collection is None:
+                raise ValueError(f"Collection {collection_id!r} was not found in Earth Search.")
             extent = collection.extent
             spatial_bboxes = getattr(extent.spatial, "bboxes", []) or []
             spatial_bbox = spatial_bboxes[0] if spatial_bboxes else None
@@ -103,6 +106,19 @@ class EarthSearchProvider:
                 )
             )
         return coverages
+
+    def get_item(self, collection_id: str, item_id: str) -> tuple[Any, Any]:
+        collection = self.client.get_collection(collection_id)
+        if collection is None:
+            raise ValueError(f"Collection {collection_id!r} was not found in Earth Search.")
+        item = collection.get_item(item_id)
+        if item is None:
+            raise ValueError(f"Item {item_id!r} was not found in collection {collection_id!r}.")
+        return collection, item
+
+    def inspect_scene_assets(self, collection_id: str, item_id: str) -> list[AssetSpec]:
+        collection, item = self.get_item(collection_id, item_id)
+        return asset_specs_from_item(provider_name=self.name, collection=collection, item=item)
 
     def _item_to_record(self, item: Any) -> SceneRecord:
         properties = getattr(item, "properties", {}) or {}
