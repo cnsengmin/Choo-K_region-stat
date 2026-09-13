@@ -32,14 +32,35 @@ The first MVP focuses on a selected area in Anyang/Pyeongchon and supports:
 
 Later diagram modules will add green space, district-unit plans, planned facilities, subway/bus, city blocks, density, and additional regional-statistics layers.
 
+## eo2stats — Earth observation research layer
+
+A reusable package is now being prototyped under [`packages/eo2stats`](packages/eo2stats/README.md).
+
+Its purpose is to connect open satellite/environmental data to urban research while preserving the meaning of each variable's native spatial support.
+
+The package separates three tasks:
+
+```text
+Earth observation
+      ↓
+physical urban-feature extraction
+      ↓
+guarded spatialization of administrative/social indicators
+```
+
+This is deliberately broader than a satellite downloader. The intended long-term interfaces are Python/CLI, MCP, QGIS and the web Atlas, all calling the same scientific core.
+
+A core rule is that **row resolution is not information resolution**. A sigungu fiscal ratio copied to 100 m grid rows remains a sigungu-level contextual variable, while building coverage calculated from fine-scale geometry is genuinely a new grid-level measurement. See [`INDICATOR_SPATIALIZATION.md`](packages/eo2stats/docs/INDICATOR_SPATIALIZATION.md).
+
 ## Architecture principles
 
 - **Source adapters, not one-off download scripts.** Each layer is represented by a `GeoChannel` with preferred and fallback sources.
-- **Reproducible provenance.** Every derived layer records where it came from, its reference date, license, CRS, and transformations.
+- **Reproducible provenance.** Every derived layer records where it came from, its reference date, license, CRS, spatial support, and transformations.
 - **Fail visibly.** A `geo-doctor` concept reports source/API/cache health rather than silently returning stale or missing data.
-- **One normalized pipeline, multiple outputs.** Maps, statistics, diagrams, and 3D views should not maintain separate copies of the same source data.
+- **One normalized pipeline, multiple outputs.** Maps, statistics, diagrams, MCP tools and 3D views should not maintain separate copies of the same source data.
 - **Repo-first reuse.** Mature open-source components are evaluated before custom implementation.
 - **National scalability.** Local exceptions are adapters/configuration, not hard-coded assumptions in the core.
+- **No false precision.** Administrative/social indicators are not automatically downscaled simply because a finer grid exists.
 
 ## Candidate technology stack
 
@@ -53,6 +74,10 @@ The stack is intentionally provisional until the architecture spike is complete.
 - Static/vector delivery: PMTiles / GeoParquet
 - 2.5D/3D diagrams: MapLibre/deck.gl first; Three.js for exploded/diagram scenes
 - API/data processing: Python
+- EO discovery: STAC / pystac-client
+- EO time series: odc-stac or stackstac
+- Change of support: PySAL/tobler where conceptually valid
+- AI feature extraction: adapters to GeoAI/segment-geospatial and task-specific models
 
 ## Repository layout
 
@@ -68,10 +93,19 @@ Choo-K_region-stat/
 │  ├─ README.md
 │  └─ registry/
 │     └─ sources.example.yaml
+├─ packages/
+│  └─ eo2stats/
+│     ├─ README.md
+│     ├─ pyproject.toml
+│     ├─ docs/
+│     │  ├─ ARCHITECTURE.md
+│     │  ├─ INDICATOR_SPATIALIZATION.md
+│     │  ├─ RELATED_PROJECTS.md
+│     │  └─ satellite-data/
+│     ├─ src/eo2stats/
+│     └─ tests/
 └─ .gitignore
 ```
-
-Application code will be added only after the architecture/reuse spike chooses the implementation baseline.
 
 ## Reference inspiration
 
@@ -79,6 +113,6 @@ The data-source resilience idea is inspired by Agent-Reach's channel/backend app
 
 ## Status
 
-**Phase 0 — repository initialization and architecture/reuse research.**
+**Phase 0/1 — repository architecture, EO data catalog, spatial-support semantics and first retrieval prototype.**
 
-See `docs/ROADMAP.md` and `docs/REUSE_RESEARCH.md` before implementation.
+See `docs/ROADMAP.md`, `docs/REUSE_RESEARCH.md`, and `packages/eo2stats/README.md` before implementation.
