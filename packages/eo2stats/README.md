@@ -114,11 +114,46 @@ SCL   → nearest-neighbour only
 
 This deliberately avoids labelling SWIR-dependent indices as native 10 m information. The default `research-clear-v1` SCL mask is versioned, and every result retains AOI-level valid/masked pixel statistics and source provenance.
 
+### 4. Monthly / seasonal temporal composites
+
+```python
+from eo2stats import CompositePolicy, TemporalObservation, build_temporal_composites
+
+observations = [
+    TemporalObservation(scene.datetime, scene_ndvi_result),
+    # ... more scene-level results
+]
+
+monthly = build_temporal_composites(
+    observations,
+    frequency="monthly",
+    policy=CompositePolicy(
+        method="median",
+        min_scene_valid_ratio=0.30,
+        min_observations=1,
+    ),
+)
+```
+
+Temporal-composite rules:
+
+- all periods in one run share one fixed `CompositeGrid`;
+- monthly / seasonal / annual grouping uses acquisition datetime;
+- December belongs to the following DJF season-year;
+- missing/cloudy pixels remain missing and are never filled with zero;
+- `n_observations` is retained per pixel;
+- scene rejection is controlled by an explicit AOI valid-pixel threshold, not a universal built-in number;
+- contributing and rejected Item IDs remain in provenance;
+- different indices / target supports / QA policies are not mixed silently.
+
 See:
 - `docs/SCENE_SEARCH.md`
 - `docs/COG_ACCESS.md`
 - `docs/SENTINEL2_INDICES.md`
+- `docs/TEMPORAL_COMPOSITES.md`
 - `examples/search_sentinel2.py`
+- `examples/analyze_sentinel2.py`
+- `examples/build_monthly_composites.py`
 - `docs/satellite-data/sentinel-2-l2a.md`
 
 ## Interfaces
@@ -168,9 +203,9 @@ Given an AOI and date range:
 2. **report scene date/cloud/assets — implemented**;
 3. **inspect raster scale/offset and read AOI COG windows — implemented**;
 4. **calculate NDVI/NDWI/MNDWI/NDBI with versioned SCL QA — implemented**;
-5. aggregate scenes into monthly/seasonal composites;
-6. aggregate to a stable Master Analysis Grid;
+5. **aggregate scene results into fixed-grid monthly/seasonal composites — implemented**;
+6. aggregate composites to a stable Master Analysis Grid;
 7. attach static DEM-derived covariates;
 8. export a provenance-aware long-format table.
 
-The next processing milestone is temporal compositing plus Master Analysis Grid aggregation. Building/road/urban-form extraction and guarded spatialization remain separate modules so physical urban measurements are not confused with administrative-context variables.
+The next processing milestone is Master Analysis Grid aggregation. Building/road/urban-form extraction and guarded spatialization remain separate modules so physical urban measurements are not confused with administrative-context variables.
