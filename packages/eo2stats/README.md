@@ -46,9 +46,9 @@ Initial classes:
 
 See `docs/INDICATOR_SPATIALIZATION.md`.
 
-## Current executable milestone: STAC scene discovery
+## Current executable milestones
 
-The first working EO API is now implemented for scene discovery.
+### 1. STAC scene discovery
 
 ```python
 from eo2stats import search_scenes
@@ -61,14 +61,33 @@ scenes = search_scenes(
     max_cloud_cover=20,
     limit=100,
 )
-
-rows = [scene.to_dict() for scene in scenes]
 ```
 
-The public logical dataset ID is intentionally separated from provider-specific collection IDs. For example, current Earth Search Sentinel-2 L2A discovery resolves `sentinel-2-l2a` across both pre-Collection-1 and Collection-1 catalogs when necessary for long time series.
+The logical dataset ID is separated from provider-specific collection IDs. Current Earth Search Sentinel-2 L2A discovery resolves `sentinel-2-l2a` across both pre-Collection-1 and Collection-1 catalogs when needed for long time series.
+
+### 2. Asset inspection and COG AOI reads
+
+```python
+from eo2stats import inspect_scene_assets, read_scene_asset_bbox
+
+assets = inspect_scene_assets(
+    collection=scenes[0].collection,
+    item_id=scenes[0].item_id,
+)
+
+red = read_scene_asset_bbox(
+    collection=scenes[0].collection,
+    item_id=scenes[0].item_id,
+    asset_key="red",
+    bbox_wgs84=(126.92, 37.35, 127.02, 37.43),
+)
+```
+
+Asset metadata includes roles, GSD, data type, nodata, scale and offset. COG reads transform the WGS84 bbox into the raster CRS and read only the intersecting window. Scale/offset are applied only to eligible measurement assets and are never blindly applied to SCL/QA/visual layers.
 
 See:
 - `docs/SCENE_SEARCH.md`
+- `docs/COG_ACCESS.md`
 - `examples/search_sentinel2.py`
 - `docs/satellite-data/sentinel-2-l2a.md`
 
@@ -111,16 +130,16 @@ Candidate MCP tools:
 - `OSMnx` and network libraries — road/network topology
 - QGIS MCP projects — AI↔QGIS control layer rather than EO semantics
 
-## First milestone
+## First milestone status
 
 Given an AOI and date range:
 
 1. **search Sentinel-2 scenes — implemented**;
 2. **report scene date/cloud/assets — implemented**;
-3. read only AOI COG windows;
+3. **inspect raster scale/offset and read AOI COG windows — implemented**;
 4. calculate NDVI/NDBI/NDWI with documented QA;
 5. aggregate to a stable analysis grid;
 6. attach static DEM-derived covariates;
 7. export a provenance-aware long-format table.
 
-The next milestone adds COG window reading and scale/offset inspection. Building/road/urban-form extraction and the guarded spatialization layer remain separate modules so physical urban measurements are not confused with administrative-context variables.
+The next processing milestone is multi-band alignment + SCL/cloud masking + NDVI/NDWI/NDBI. Building/road/urban-form extraction and guarded spatialization remain separate modules so physical urban measurements are not confused with administrative-context variables.
