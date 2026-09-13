@@ -14,7 +14,7 @@ keywords = ["earth-observation", "urban", "gis", "spatial-statistics", "stac", "
 dependencies = []
 
 [project.optional-dependencies]
-eo = ["pystac-client", "xarray", "rasterio", "rioxarray"]
+eo = ["numpy", "pystac-client", "xarray", "rasterio", "rioxarray"]
 vector = ["geopandas", "shapely"]
 spatialize = ["geopandas", "shapely", "tobler"]
 dev = ["pytest", "ruff"]

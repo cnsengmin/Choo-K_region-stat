@@ -85,9 +85,39 @@ red = read_scene_asset_bbox(
 
 Asset metadata includes roles, GSD, data type, nodata, scale and offset. COG reads transform the WGS84 bbox into the raster CRS and read only the intersecting window. Scale/offset are applied only to eligible measurement assets and are never blindly applied to SCL/QA/visual layers.
 
+### 3. Sentinel-2 QA masking and indices
+
+```python
+from eo2stats import analyze_sentinel2_scene
+
+results = analyze_sentinel2_scene(
+    collection=scenes[0].collection,
+    item_id=scenes[0].item_id,
+    bbox_wgs84=(126.92, 37.35, 127.02, 37.43),
+    indices=("ndvi", "ndwi", "mndwi", "ndbi"),
+    mask_policy="research-clear-v1",
+)
+
+print(results["ndvi"].summary.to_dict())
+print(results["ndvi"].provenance())
+```
+
+Resolution policy:
+
+```text
+NDVI  → 10 m target grid
+NDWI  → 10 m target grid
+MNDWI → 20 m SWIR target grid
+NDBI  → 20 m SWIR target grid
+SCL   → nearest-neighbour only
+```
+
+This deliberately avoids labelling SWIR-dependent indices as native 10 m information. The default `research-clear-v1` SCL mask is versioned, and every result retains AOI-level valid/masked pixel statistics and source provenance.
+
 See:
 - `docs/SCENE_SEARCH.md`
 - `docs/COG_ACCESS.md`
+- `docs/SENTINEL2_INDICES.md`
 - `examples/search_sentinel2.py`
 - `docs/satellite-data/sentinel-2-l2a.md`
 
@@ -137,9 +167,10 @@ Given an AOI and date range:
 1. **search Sentinel-2 scenes — implemented**;
 2. **report scene date/cloud/assets — implemented**;
 3. **inspect raster scale/offset and read AOI COG windows — implemented**;
-4. calculate NDVI/NDBI/NDWI with documented QA;
-5. aggregate to a stable analysis grid;
-6. attach static DEM-derived covariates;
-7. export a provenance-aware long-format table.
+4. **calculate NDVI/NDWI/MNDWI/NDBI with versioned SCL QA — implemented**;
+5. aggregate scenes into monthly/seasonal composites;
+6. aggregate to a stable Master Analysis Grid;
+7. attach static DEM-derived covariates;
+8. export a provenance-aware long-format table.
 
-The next processing milestone is multi-band alignment + SCL/cloud masking + NDVI/NDWI/NDBI. Building/road/urban-form extraction and guarded spatialization remain separate modules so physical urban measurements are not confused with administrative-context variables.
+The next processing milestone is temporal compositing plus Master Analysis Grid aggregation. Building/road/urban-form extraction and guarded spatialization remain separate modules so physical urban measurements are not confused with administrative-context variables.
